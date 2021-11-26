@@ -1,3 +1,4 @@
+from itertools import product
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 
@@ -75,6 +76,22 @@ class Product(models.Model):
         return self.title
 
 
+class Discount(models.Model):
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discounts")
+    discount = models.FloatField(default=0.0)
+    expires_in = models.DateField()
+    is_active = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        discount = Discount.objects.filter(product=self.product, is_active=True, expires_in__gt=self.expires_in)
+        if discount.exists():
+            for dis in discount:
+                dis.is_active = False
+                dis.save()
+        return super(Discount, self).save(*args, **kwargs)
+
+
+
 class Photo(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
     photo = models.FileField(upload_to="images/")
@@ -93,7 +110,7 @@ class Characteristic(models.Model):
 
 
 class Review(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     rating = models.FloatField()
     text = models.TextField(null=True, blank=True)
