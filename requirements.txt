@@ -1,6 +1,7 @@
 asgiref==3.4.1
 Django==3.2.9
 django-cors-headers==3.10.0
+django-environ==0.8.1
 django-js-asset==1.2.2
 django-mptt==0.13.4
 djangorestframework==3.12.4
