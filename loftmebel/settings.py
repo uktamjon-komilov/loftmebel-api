@@ -15,7 +15,7 @@ environ.Env().read_env(os.path.join(BASE_DIR, ".env"))
 SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env("DEBUG")
 
 ALLOWED_HOSTS = ["*"]
 
@@ -81,7 +81,7 @@ else:
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
             'NAME': env("DB_NAME"),
-            'HOST': '127.0.0.1',
+            'HOST': env("DB_HOST"),
             'PORT': 5432,
             'USER': env("DB_USER"),
             'PASSWORD': env("DB_PASS"),
