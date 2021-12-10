@@ -1,8 +1,9 @@
-from itertools import product
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
-
+from django.utils import timezone
 from mptt.models import MPTTModel, TreeForeignKey
+from django.template.defaultfilters import slugify
+from random import randint
 
 from .managers import UserManager
 
@@ -71,10 +72,17 @@ class Product(models.Model):
     color = models.ManyToManyField(Color)
     size = models.ManyToManyField(Size)
     description = models.TextField()
-
+    slug = models.CharField(max_length=255)
 
     def __str__(self):
         return self.title
+    
+    def save(self, *args, **kwargs):
+        slug = slugify(self.title)
+        while Product.objects.filter(slug=slug).exists():
+            slug += str(timezone.now().year % randint(1, 9))
+        self.slug = slug
+        return super(Product, self).save(*args, **kwargs)
 
 
 class Discount(models.Model):
@@ -102,7 +110,7 @@ class Photo(models.Model):
 
 
 class Characteristic(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE)
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="characteristics")
     key = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
 

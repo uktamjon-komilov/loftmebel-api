@@ -20,6 +20,23 @@ class BannerListView(ListAPIView):
 
 
 class ProductViewSet(ViewSet):
+    serializer_class = ProductSerializer
+    detail_serializer_class = ProductDetailSerializer
+
+    def retrieve(self, request, pk=None):
+        try:
+            pk = int(pk)
+            product = Product.objects.filter(id=pk)
+        except:
+            product = Product.objects.filter(slug=pk)
+
+        if product.exists():
+            product = product.first()
+            serializer = self.detail_serializer_class(product)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=False, methods=["get"], url_path="top")
     def top_products(self, request):
         products = Product.objects.annotate(average_rating=Avg("reviews__rating")).order_by("-average_rating")[:20]

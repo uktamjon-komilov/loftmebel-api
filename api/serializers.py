@@ -30,15 +30,29 @@ class SizeSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = "__all__"
+
+
+class CharacteristicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Characteristic
+        fields = "__all__"
+
+
 class ProductSerializer(serializers.ModelSerializer):
     size = SizeSerializer(many=True)
+    photos = PhotoSerializer(many=True)
+    characteristics = CharacteristicSerializer(many=True)
     category = CategorySimpleSerializer(many=False)
     discount = serializers.SerializerMethodField()
     discounted_price = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
-        fields = ["id", "title", "photo", "category", "price", "discounted_price", "size", "discount"]
+        fields = ["id", "title", "slug", "photo", "category", "discount", "price", "discounted_price", "size", "photos", "characteristics"]
     
     def get_discount_obj(self, obj):
         now = timezone.now()
@@ -61,3 +75,9 @@ class ProductSerializer(serializers.ModelSerializer):
         if discount:
             return obj.price * (100 - discount.discount) / 100
         return None
+
+
+class ProductDetailSerializer(ProductSerializer):
+    class Meta:
+        model = Product
+        fields = ["id", "title", "slug", "photo", "category", "description", "discount", "price", "discounted_price", "size", "photos", "characteristics"]

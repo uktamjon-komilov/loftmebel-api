@@ -37,6 +37,9 @@ class PhotoAdmin(admin.StackedInline):
 class ProductAdmin(admin.ModelAdmin):
     inlines = [CharacteristicAdmin, PhotoAdmin]
 
+    def get_prepopulated_fields(self, request, obj=None):
+        return {"slug": ("title",)}
+
 
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category, CategoryAdmin)
