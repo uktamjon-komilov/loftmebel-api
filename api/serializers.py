@@ -30,6 +30,12 @@ class SizeSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
 
+class ColorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Color
+        fields = "__all__"
+
+
 class PhotoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Photo
@@ -44,6 +50,7 @@ class CharacteristicSerializer(serializers.ModelSerializer):
 
 class ProductSerializer(serializers.ModelSerializer):
     size = SizeSerializer(many=True)
+    color = ColorSerializer(many=True)
     photos = PhotoSerializer(many=True)
     characteristics = CharacteristicSerializer(many=True)
     category = CategorySimpleSerializer(many=False)
@@ -52,7 +59,8 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ["id", "title", "slug", "photo", "category", "discount", "price", "discounted_price", "size", "photos", "characteristics"]
+        fields = ["id", "title", "slug", "photo", "category", "discount", "price", "discounted_price", "size", "color", "photos", "characteristics"]
+        read_only_fields = ["size", "color"]
     
     def get_discount_obj(self, obj):
         now = timezone.now()
@@ -80,4 +88,4 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(ProductSerializer):
     class Meta:
         model = Product
-        fields = ["id", "title", "slug", "photo", "category", "description", "discount", "price", "discounted_price", "size", "photos", "characteristics"]
+        fields = ["id", "title", "slug", "photo", "category", "description", "discount", "price", "discounted_price", "size", "color", "photos", "characteristics"]

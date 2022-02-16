@@ -69,8 +69,8 @@ class Product(models.Model):
     photo = models.FileField(upload_to="images/")
     category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
     price = models.FloatField()
-    color = models.ManyToManyField(Color)
-    size = models.ManyToManyField(Size)
+    color = models.ManyToManyField(Color, related_name="products")
+    size = models.ManyToManyField(Size, related_name="products")
     description = models.TextField()
     slug = models.CharField(max_length=255)
 

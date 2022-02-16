@@ -6,10 +6,12 @@ from .views import *
 
 router = DefaultRouter()
 router.register("products", ProductViewSet, basename="products")
+router.register("categories", CategoryViewSet, basename="categories")
+router.register("colors", ColorsViewSet, basename="colors")
+router.register("size", SizeViewSet, basename="size")
 
 
 urlpatterns = [
-    path("category/", CategoryListView.as_view()),
-    path("banner/", BannerListView.as_view()),
+    path("banners/", BannerListView.as_view()),
     path("", include(router.urls)),
 ]
