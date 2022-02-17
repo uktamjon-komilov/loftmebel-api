@@ -101,6 +101,24 @@ class ProductViewSet(ModelViewSet):
 
         serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+    @action(detail=True, methods=["get"], url_path="recommended")
+    def recommended(self, request, pk=None):
+        try:
+            product = Product.objects.get(id=pk)
+        except:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        products = Product.objects.filter(category=product.category).exclude(id=pk)[:4]
+        serializer = self.serializer_class(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+
+    @action(detail=False, methods=["get"], url_path="latest")
+    def latest(self, request):
+        products = Product.objects.all().order_by("-created_at")[:4]
+        serializer = self.serializer_class(products, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class ColorsViewSet(
