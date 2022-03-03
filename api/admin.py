@@ -41,6 +41,10 @@ class ProductAdmin(admin.ModelAdmin):
         return {"slug": ("title",)}
 
 
+class OTPAdmin(admin.ModelAdmin):
+    list_display = ["id", "email", "code", "token", "created_at"]
+
+
 admin.site.register(Product, ProductAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Color, ColorAdmin)
@@ -49,3 +53,4 @@ admin.site.register(Review)
 admin.site.register(Wishlist)
 admin.site.register(Banner)
 admin.site.register(Discount)
+admin.site.register(OTP, OTPAdmin)

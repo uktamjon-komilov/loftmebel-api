@@ -9,6 +9,8 @@ router.register("products", ProductViewSet, basename="products")
 router.register("categories", CategoryViewSet, basename="categories")
 router.register("colors", ColorsViewSet, basename="colors")
 router.register("size", SizeViewSet, basename="size")
+router.register("check-email", EmailCheckViewSet, basename="check-email")
+router.register("check-otp", EmailOTPCheckViewSet, basename="check-email")
 
 
 urlpatterns = [

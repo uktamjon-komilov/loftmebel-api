@@ -89,3 +89,13 @@ class ProductDetailSerializer(ProductSerializer):
     class Meta:
         model = Product
         fields = ["id", "title", "slug", "photo", "category", "description", "discount", "price", "discounted_price", "size", "color", "photos", "characteristics"]
+
+
+class EmailCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+
+class EmailOTPCheckSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    token = serializers.CharField()
+    code = serializers.IntegerField()

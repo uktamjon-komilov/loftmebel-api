@@ -122,3 +122,12 @@ CORS_ALLOW_ALL_ORIGINS = True
 #     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsSetPagination",
 #     "PAGE_SIZE": 20
 # }
+
+DEFAULT_FROM_EMAIL = "softoptions.mobile@gmail.com"
+
+EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_HOST_USER = "softoptions.mobile@gmail.com"
+EMAIL_HOST_PASSWORD = "nzunqanwjusyctzb"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True

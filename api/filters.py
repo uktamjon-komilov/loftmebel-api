@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from api.models import Color
+from api.models import Category, Color
 
 
 class ProductFilters:
@@ -30,15 +30,16 @@ class ProductFilters:
         if colors_string:
             colors_string = colors_string.replace("[", "").replace("]", "")
             color_ids = colors_string.split(",")
+            print(color_ids)
             queryset = queryset.filter(color__id__in=color_ids)
         
         size_string = data.get("size", None)
         if size_string:
             size_string = size_string.replace("[", "").replace("]", "")
             size_ids = size_string.split(",")
-            queryset = queryset.filter(size__id__id=size_ids)
+            print(size_ids)
+            queryset = queryset.filter(size__id__in=size_ids)
         
-
         return queryset.distinct()
 
 
@@ -51,9 +52,12 @@ class ColorsFilter:
         if category_id:
             try:
                 category_id = int(category_id)
-                queryset = queryset.filter(products__category__id=category_id)
+                category = Category.objects.filter(id=category_id)
             except:
-                pass
+                category = Category.objects.filter(slug=category_id)
+            if category.exists():
+                category = category.first()
+                queryset = queryset.filter(products__category=category)
 
         return queryset.distinct()
 
@@ -67,8 +71,11 @@ class SizeFilter:
         if category_id:
             try:
                 category_id = int(category_id)
-                queryset = queryset.filter(products__category__id=category_id)
+                category = Category.objects.filter(id=category_id)
             except:
-                pass
+                category = Category.objects.filter(slug=category_id)
+            if category.exists():
+                category = category.first()
+                queryset = queryset.filter(products__category=category)
 
         return queryset.distinct()

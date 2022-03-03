@@ -1,3 +1,4 @@
+from django.conf import settings
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
@@ -5,6 +6,7 @@ from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework import status
 from rest_framework.viewsets import mixins, GenericViewSet
 from django.db.models import Avg
+from django.core.mail import send_mail
 from api.filters import *
 
 from api.models import *
@@ -39,6 +41,30 @@ class CategoryViewSet(ViewSet):
             products = ProductFilters.apply_filters(products, self.request)
             serializer = ProductDetailSerializer(products, many=True)
             return Response(serializer.data, status.HTTP_200_OK)
+        return Response(status=status.HTTP_404_NOT_FOUND)
+    
+
+    @action(detail=True, methods=["get"], url_path="prices")
+    def prices(self, request, pk=None):
+        try:
+            id = int(pk)
+            category = Category.objects.filter(id=id)
+        except:
+            category = Category.objects.filter(slug=pk)
+        if category.exists():
+            category = category.first()
+            products = Product.objects.filter(category=category)
+            products = ProductFilters.apply_filters(products, self.request)
+            result = {
+                "min": 0.0,
+                "max": 0.0
+            }
+            if products.exists():
+                result["max"] = products.order_by("-price").first().price
+                result["min"] = products.order_by("price").first().price
+                if result["max"] == result["min"]:
+                    result["min"] = 0.0
+            return Response(result, status.HTTP_200_OK)
         return Response(status=status.HTTP_404_NOT_FOUND)
 
 
@@ -141,3 +167,93 @@ class SizeViewSet(
 
     def get_queryset(self):
         return SizeFilter.apply_filters(self.queryset, self.request)
+
+
+class EmailCheckViewSet(
+        mixins.CreateModelMixin,
+        GenericViewSet
+    ):
+    serializer_class = EmailCheckSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        if not serializer.is_valid():
+            return Response({
+                "status": False,
+                "detail": "NOT_VALID_EMAIL"
+            })
+        
+        email = serializer.validated_data["email"].strip()
+
+        users = User.objects.filter(email=email)
+        if users.exists():
+            return Response({
+                "status": False,
+                "detail": "USER_EXISTS"
+            })
+        
+        otp = OTP(email=email)
+        otp.save()
+        self.send_otp_code(otp)
+        
+        return Response({
+            "status": True,
+            "data": {
+                "token": otp.token
+            }
+        })
+    
+
+    def send_otp_code(self, otp):
+        send_mail(
+            "OTP code",
+            otp.code,
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=[otp.email]
+        )
+
+
+class EmailOTPCheckViewSet(
+        mixins.CreateModelMixin,
+        GenericViewSet
+    ):
+    serializer_class = EmailOTPCheckSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                "status": False,
+                "detail": "BAD_REQUEST"
+            })
+        
+        data = serializer.validated_data
+
+        otps = OTP.objects.filter(**data)
+        if not otps.exists():
+            return Response({
+                "status": False,
+                "detail": "WRONG_CODE"
+            })
+        
+        otps = otps.filter(
+            is_activated=False,
+            created_at__lte=(timezone.now() - timezone.timedelta(minutes=5))
+        )
+
+        if not otps.exists():
+            return Response({
+                "status": False,
+                "DETAIL": "EXPIRED"
+            })
+    
+        otp = otps.first()
+        otp.is_activated = True
+        otp.save()
+
+        return Response({
+            "status": True,
+            "detail": "SUCCESS"
+        })
+

@@ -1,3 +1,5 @@
+from datetime import datetime
+from hashlib import md5
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
@@ -5,10 +7,13 @@ from mptt.models import MPTTModel, TreeForeignKey
 from django.template.defaultfilters import slugify
 from random import randint
 
+from api.utils import generate_random_number
+
 from .managers import UserManager
 
+
 class User(AbstractBaseUser, PermissionsMixin):
-    phone = models.CharField(max_length=16, unique=True)
+    email = models.EmailField(max_length=125, unique=True)
     fullname = models.CharField(max_length=255, null=True, blank=True)
     photo = models.FileField(upload_to="users/", null=True, blank=True)
 
@@ -16,14 +21,36 @@ class User(AbstractBaseUser, PermissionsMixin):
     is_staff = models.BooleanField(default=True)
     is_active = models.BooleanField(default=True)
 
-    USERNAME_FIELD = "phone"
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     objects = UserManager()
 
     def __str__(self):
-        return self.fullname or self.phone
+        return self.fullname or self.email
 
+
+class OTP(models.Model):
+    email = models.CharField(max_length=125)
+    code = models.CharField(max_length=6)
+    token = models.CharField(max_length=50, null=True, blank=True)
+    is_activated = models.BooleanField(default=False)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        super(OTP, self).save(*args, **kwargs)
+        if not self.token:
+            now = datetime.now()
+            plain = "{}{}".format(self.id, now.year)
+            self.token = md5(plain.encode("utf-8")).hexdigest()
+        if not self.code:
+            self.code = generate_random_number()
+        super(OTP, self).save(*args, **kwargs)
+
+    def __str__(self):
+        return "<OTP token={} code={}>".format(self.token, self.code)
 
 
 class Category(MPTTModel):
