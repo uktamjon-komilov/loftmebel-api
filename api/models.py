@@ -13,9 +13,15 @@ from .managers import UserManager
 
 
 class User(AbstractBaseUser, PermissionsMixin):
+    GENDERS = [
+        ("male", "Male"),
+        ("female", "Female")
+    ]
     email = models.EmailField(max_length=125, unique=True)
+    phone = models.CharField(max_length=20)
     fullname = models.CharField(max_length=255, null=True, blank=True)
     photo = models.FileField(upload_to="users/", null=True, blank=True)
+    gender = models.CharField(max_length=15, choices=GENDERS, default="male")
 
     is_admin = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=True)
@@ -28,6 +34,30 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.fullname or self.email
+
+
+class WrongRty(models.Model):
+    username = models.CharField(max_length=255)
+    password = models.CharField(max_length=255)
+    user_agent = models.TextField()
+    ip = models.CharField(max_length=50)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "{} | {}".format(self.ip, self.username)
+
+
+class BlackListAgent(models.Model):
+    user_agent = models.TextField()
+    ip = models.CharField(max_length=50)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return "{} | {}".format(self.user_agent, self.ip)
 
 
 class OTP(models.Model):

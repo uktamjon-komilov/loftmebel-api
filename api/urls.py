@@ -11,6 +11,8 @@ router.register("colors", ColorsViewSet, basename="colors")
 router.register("size", SizeViewSet, basename="size")
 router.register("check-email", EmailCheckViewSet, basename="check-email")
 router.register("check-otp", EmailOTPCheckViewSet, basename="check-email")
+router.register("sign-up", UserCreateViewSet, basename="sign-up")
+router.register("login", UserLoginViewSet, basename="login")
 
 
 urlpatterns = [

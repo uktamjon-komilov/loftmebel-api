@@ -5,13 +5,18 @@ from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet
 from rest_framework import status
 from rest_framework.viewsets import mixins, GenericViewSet
-from django.db.models import Avg
+from django.db.models import Avg, Q
+from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
-from api.filters import *
+from drf_yasg.utils import swagger_auto_schema
+from datetime import datetime, timedelta
 
 from api.models import *
 from api.pagination import StandardResultsSetPagination
 from api.serializers import *
+from api.filters import *
+from api.services import check_black_list, create_wrong_try
+from api.utils import get_client_ip
 
 
 class CategoryViewSet(ViewSet):
@@ -110,7 +115,7 @@ class ProductViewSet(ModelViewSet):
 
     @action(detail=False, methods=["get"], url_path="discounted")
     def discounted(self, request):
-        now = timezone.now()
+        now = datetime.now()
         today = "{}-{}-{}".format(now.year, now.month, now.day)
         discounts = Discount.objects.filter(is_active=True, expires_in__gt=today)
 
@@ -174,6 +179,8 @@ class EmailCheckViewSet(
         GenericViewSet
     ):
     serializer_class = EmailCheckSerializer
+    authentication_classes = []
+    permission_classes = []
 
     def create(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -218,6 +225,8 @@ class EmailOTPCheckViewSet(
         GenericViewSet
     ):
     serializer_class = EmailOTPCheckSerializer
+    authentication_classes = []
+    permission_classes = []
 
     def create(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data)
@@ -236,16 +245,16 @@ class EmailOTPCheckViewSet(
                 "status": False,
                 "detail": "WRONG_CODE"
             })
-        
+
         otps = otps.filter(
             is_activated=False,
-            created_at__lte=(timezone.now() - timezone.timedelta(minutes=5))
+            created_at__gte=(datetime.now() - timedelta(minutes=5))
         )
 
         if not otps.exists():
             return Response({
                 "status": False,
-                "DETAIL": "EXPIRED"
+                "detail": "EXPIRED"
             })
     
         otp = otps.first()
@@ -257,3 +266,116 @@ class EmailOTPCheckViewSet(
             "detail": "SUCCESS"
         })
 
+
+class UserCreateViewSet(
+        mixins.CreateModelMixin,
+        GenericViewSet
+    ):
+    serializer_class = UserCreateSerializer
+    user_serializer_class = UserSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    @swagger_auto_schema(request_body=UserCreateSerializer, responses={201: UserSerializer})
+    def create(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                "status": False,
+                "detail": f"BAD_REQUEST ({serializer.errors})"
+            })
+        
+        data = serializer.validated_data
+
+        token = data.pop("token", "")
+        otps = OTP.objects.filter(
+            token=token,
+            is_activated=True,
+            created_at__gte=(datetime.now() - timedelta(minutes=5))
+        )
+        if not otps.exists():
+            return Response({
+                "status": False,
+                "detail": "TIMEOUT"
+            })
+        
+        otp = otps.first()
+        user = User(email=otp.email, **data)
+        try:
+            password = data.pop("password", "")
+            user.save()
+            user.set_password(password)
+            user.save()
+        except Exception as e:
+            return Response({
+                "status": False,
+                "detail": "DATABASE_ERROR"
+            })
+        
+        user_serializer = self.user_serializer_class(user)
+        return Response({
+            "status": True,
+            "data": {**user_serializer.data}
+        })
+
+
+class UserLoginViewSet(
+        mixins.CreateModelMixin,
+        GenericViewSet
+    ):
+    serializer_class = UserLoginResponseSerializer
+    response_serializer_class = UserLoginSerializer
+    authentication_classes = []
+    permission_classes = []
+
+    @swagger_auto_schema(request_body=UserLoginSerializer)
+    def create(self, request, *args, **kwargs):
+        if check_black_list(request):
+            return Response({
+                "status": False,
+                "detail": "TRY_IN_FIVE_MINUTES"
+            })
+        
+        serializer = self.response_serializer_class(data=request.data)
+
+        if not serializer.is_valid():
+            return Response({
+                "status": False,
+                "detail": "BAD_REQUEST"
+            })
+        
+        data = serializer.validated_data
+
+        username = data["username"].strip()
+        password = data["password"].strip()
+
+        users = User.objects.filter(
+            Q(email=username) |
+            Q(phone=username)
+        )
+
+        if not users.exists():
+            return Response({
+                "status": False,
+                "detail": "USER_NOT_EXISTS"
+            })
+        
+        user = users.first()
+
+        if not user.check_password(password):
+            create_wrong_try(request, data)
+            return Response({
+                "status": False,
+                "detail": "WRONG_PASSWORD"
+            })
+        
+        refresh = RefreshToken.for_user(user)
+
+        return Response({
+            "status": True,
+            "data": {
+                "access": str(refresh.access_token),
+                "refresh": str(refresh)
+            }
+        })

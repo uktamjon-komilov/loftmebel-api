@@ -98,4 +98,29 @@ class EmailCheckSerializer(serializers.Serializer):
 class EmailOTPCheckSerializer(serializers.Serializer):
     email = serializers.EmailField()
     token = serializers.CharField()
-    code = serializers.IntegerField()
+    code = serializers.CharField()
+
+
+class UserCreateSerializer(serializers.Serializer):
+    token = serializers.CharField(max_length=40)
+    phone = serializers.CharField(max_length=20)
+    fullname = serializers.CharField(max_length=255)
+    photo = serializers.FileField(allow_empty_file=True, use_url=True, required=False)
+    gender = models.CharField(max_length=15)
+    password = models.CharField(max_length=20)
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        fields = ["id", "email", "phone", "photo", "fullname", "gender"]
+
+
+class UserLoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=255, required=True)
+    password = serializers.CharField(max_length=125, required=True)
+
+
+class UserLoginResponseSerializer(serializers.Serializer):
+    access = models.CharField()
+    refresh = models.CharField()

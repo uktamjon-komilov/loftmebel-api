@@ -28,6 +28,8 @@ INSTALLED_APPS = [
     "mptt",
     "rest_framework",
     "corsheaders",
+    "drf_yasg",
+    "django_user_agents"
 ]
 
 MIDDLEWARE = [
@@ -40,6 +42,7 @@ MIDDLEWARE = [
     "django.contrib.auth.middleware.AuthenticationMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "django_user_agents.middleware.UserAgentMiddleware"
 ]
 
 ROOT_URLCONF = "loftmebel.urls"
@@ -118,10 +121,11 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 CORS_ALLOW_ALL_ORIGINS = True
 
-# REST_FRAMEWORK = {
-#     "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsSetPagination",
-#     "PAGE_SIZE": 20
-# }
+REST_FRAMEWORK = {
+    # "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsSetPagination",
+    # "PAGE_SIZE": 20
+    "DEFAULT_AUTHENTICATION_CLASSES": "rest_framework.authentication.SessionAuthentication"
+}
 
 DEFAULT_FROM_EMAIL = "softoptions.mobile@gmail.com"
 

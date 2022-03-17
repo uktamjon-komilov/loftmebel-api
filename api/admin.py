@@ -4,7 +4,6 @@ from mptt.admin import MPTTModelAdmin
 
 from api.models import *
 
-
 class CategoryAdmin(MPTTModelAdmin):
     mptt_level_indent = 50
 
@@ -53,4 +52,5 @@ admin.site.register(Review)
 admin.site.register(Wishlist)
 admin.site.register(Banner)
 admin.site.register(Discount)
+admin.site.register(User)
 admin.site.register(OTP, OTPAdmin)
