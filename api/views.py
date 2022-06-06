@@ -2,14 +2,16 @@ from django.conf import settings
 from rest_framework.decorators import action
 from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
-from rest_framework.viewsets import ModelViewSet, ViewSet
+from rest_framework.viewsets import ModelViewSet, ViewSet, GenericViewSet, mixins
 from rest_framework import status
 from rest_framework.viewsets import mixins, GenericViewSet
 from django.db.models import Avg, Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.views import APIView
 from datetime import datetime, timedelta
+import stripe
 
 from api.models import *
 from api.pagination import StandardResultsSetPagination
@@ -17,6 +19,9 @@ from api.serializers import *
 from api.filters import *
 from api.services import check_black_list, create_wrong_try
 from api.utils import get_client_ip
+
+
+stripe.api_key = "sk_test_51L7h4wJOQHe4ItwoFY51RwjQ0fDBBZNIxOr1KCbbMDpsp0Cf4QQVUMHtZ3yaJuX1p4ak5cwaWGDrdhLzkyLKdRTj00bfmEiIYJ"
 
 
 class CategoryViewSet(ViewSet):
@@ -44,8 +49,16 @@ class CategoryViewSet(ViewSet):
             category = category.first()
             products = Product.objects.filter(category=category)
             products = ProductFilters.apply_filters(products, self.request)
+
+            paginator = StandardResultsSetPagination()
+            page = paginator.paginate_queryset(products)
+            if page is not None:
+                serializer = ProductDetailSerializer(page, many=True)
+                return self.get_paginated_response(serializer.data)
+
             serializer = ProductDetailSerializer(products, many=True)
             return Response(serializer.data, status.HTTP_200_OK)
+
         return Response(status=status.HTTP_404_NOT_FOUND)
     
 
@@ -105,11 +118,16 @@ class ProductViewSet(ModelViewSet):
 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
-
     @action(detail=False, methods=["get"], url_path="top")
     def top_products(self, request):
         products = self.get_queryset()[:20]
-        serializer = ProductSerializer(products, many=True)
+
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -141,14 +159,26 @@ class ProductViewSet(ModelViewSet):
         except:
             return Response(status=status.HTTP_404_NOT_FOUND)
         products = Product.objects.filter(category=product.category).exclude(id=pk)[:4]
-        serializer = self.serializer_class(products, many=True)
+
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
 
     @action(detail=False, methods=["get"], url_path="latest")
     def latest(self, request):
         products = Product.objects.all().order_by("-created_at")[:4]
-        serializer = self.serializer_class(products, many=True)
+        
+        page = self.paginate_queryset(products)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(products, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
@@ -352,7 +382,7 @@ class UserLoginViewSet(
 
         users = User.objects.filter(
             Q(email=username) |
-            Q(phone=username)
+            Q(phone__icontains=username)
         )
 
         if not users.exists():
@@ -379,3 +409,54 @@ class UserLoginViewSet(
                 "refresh": str(refresh)
             }
         })
+
+
+class StripeAPIView(APIView):
+    serialzer_class = StripeGetLinkPostSerializer
+
+    def post(self, request):
+        serializer = self.serialzer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        data = serializer.validated_data
+
+        session = stripe.checkout.Session.create(
+            line_items=[
+            {
+                "price_data": {
+                    "currency": "usd",
+                    "product_data": {
+                        "name": "T-shirt",
+                    },
+                    "unit_amount": 2000,
+                },
+                "quantity": 1,
+            }
+            ],
+            mode="payment",
+            payment_method_types=['card'],
+            success_url=data["success_url"],
+            cancel_url=data["cancel_url"],
+        )
+
+        return Response({"checkout_url": session.url})
+
+
+class FeedbackViewSet(mixins.CreateModelMixin, GenericViewSet):
+    queryset = Feedback.objects.all()
+    serializer_class = FeedbackSerializer
+    authentication_classes = []
+    permission_classes = []
+
+
+class UserViewSet(mixins.CreateModelMixin, GenericViewSet):
+    queryset = User.objects.all()
+    serializer_class = UserSerializer
+
+    @action(detail=False, methods=["get"], url_path="me")
+    def get_my_data(self, request):
+        if not request.user.is_authenticated:
+            return Response(status=status.HTTP_401_UNAUTHORIZED)
+        
+        serializer = self.get_serializer(request.user)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)

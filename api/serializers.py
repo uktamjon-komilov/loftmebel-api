@@ -124,3 +124,21 @@ class UserLoginSerializer(serializers.Serializer):
 class UserLoginResponseSerializer(serializers.Serializer):
     access = models.CharField()
     refresh = models.CharField()
+
+
+class StripeGetLinkPostSerializer(serializers.Serializer):
+    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    success_url = serializers.CharField()
+    cancel_url = serializers.CharField()
+
+
+class FeedbackSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Feedback
+        fields = "__all__"
+
+
+class UserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = User
+        exclude = ["is_staff", "is_admin", "is_superuser"]

@@ -195,3 +195,21 @@ class Wishlist(models.Model):
 
     def __str__(self):
         return "{} liked {}".format(self.ip or self.user.fullname or self.user.phone, self.product.title)
+
+
+class Order(models.Model):
+    pass
+
+
+class OrderProduct(models.Model):
+    pass
+
+
+class Feedback(models.Model):
+    fullname = models.CharField(max_length=120)
+    email = models.EmailField()
+    message = models.TextField()
+    file = models.FileField()
+
+    def __str__(self):
+        return "{} {} {}".format(self.fullname, self.email, self.message).strip()
