@@ -6,12 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env().read_env(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = env("SECRET_KEY")
+SECRET_KEY = env("SECRET_KEY", default="foo")
 
-if env("DEBUG") == "False":
-    DEBUG = False
-else:
-    DEBUG = True
+DEBUG = env("DEBUG", default="1") == "1"
 
 ALLOWED_HOSTS = ["*"]
 
@@ -65,24 +62,16 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "loftmebel.wsgi.application"
 
-if DEBUG:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
-        }
+DATABASES = {
+    "default": {
+        "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"),
+        "NAME": env("DB_NAME", default=str(BASE_DIR / "db.sqlite3")),
+        "HOST": env("DB_HOST"),
+        "PORT": 5432,
+        "USER": env("DB_USER"),
+        "PASSWORD": env("DB_PASS"),
     }
-else:
-    DATABASES = {
-        "default": {
-            "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("DB_NAME"),
-            "HOST": env("DB_HOST"),
-            "PORT": 5432,
-            "USER": env("DB_USER"),
-            "PASSWORD": env("DB_PASS"),
-        }
-    }
+}
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -122,8 +111,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CORS_ALLOW_ALL_ORIGINS = True
 
 REST_FRAMEWORK = {
-    # "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardResultsSetPagination",
-    # "PAGE_SIZE": 20
     "DEFAULT_AUTHENTICATION_CLASSES": "rest_framework.authentication.SessionAuthentication"
 }
 
