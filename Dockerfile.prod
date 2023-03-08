@@ -55,7 +55,7 @@ RUN apk update && apk add libpq
 COPY --from=builder /home/user/web/wheels /wheels
 COPY --from=builder /home/user/web/requirements.txt .
 RUN pip install --no-cache /wheels/*
-RUN pip install python-dateutil gunicorn
+RUN pip install python-dateutil gunicorn psycopg2-binary
 
 # copy entrypoint.prod.sh
 COPY ./entrypoint.prod.sh .
