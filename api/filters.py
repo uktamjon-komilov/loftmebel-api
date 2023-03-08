@@ -1,6 +1,6 @@
 from django.db.models import Q
 
-from api.models import Category, Color
+from api.models import Category
 
 
 class ProductFilters:
@@ -52,9 +52,9 @@ class ColorsFilter:
         if category_id:
             try:
                 category_id = int(category_id)
-                category = Category.objects.filter(id=category_id)
-            except:
-                category = Category.objects.filter(slug=category_id)
+                category = Category.objects.filter(id=category_id) # type: ignore 
+            except Exception:
+                category = Category.objects.filter(slug=category_id) # type: ignore 
             if category.exists():
                 category = category.first()
                 queryset = queryset.filter(products__category=category)
@@ -72,7 +72,7 @@ class SizeFilter:
             try:
                 category_id = int(category_id)
                 category = Category.objects.filter(id=category_id)
-            except:
+            except Exception:
                 category = Category.objects.filter(slug=category_id)
             if category.exists():
                 category = category.first()

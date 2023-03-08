@@ -2,7 +2,20 @@ from django.urls import path
 from django.urls.conf import include
 from rest_framework.routers import DefaultRouter
 
-from .views import *
+from .views import (
+    ProductViewSet,
+    CategoryViewSet,
+    ColorsViewSet,
+    SizeViewSet,
+    EmailCheckViewSet,
+    EmailOTPCheckViewSet,
+    UserCreateViewSet,
+    UserLoginViewSet,
+    FeedbackViewSet,
+    UserViewSet,
+    BannerListView,
+    StripeAPIView
+)
 
 router = DefaultRouter()
 router.register("products", ProductViewSet, basename="products")

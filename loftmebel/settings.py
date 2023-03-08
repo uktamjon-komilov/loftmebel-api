@@ -6,9 +6,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 env = environ.Env()
 environ.Env().read_env(os.path.join(BASE_DIR, ".env"))
 
-SECRET_KEY = env("SECRET_KEY", default="foo")
+SECRET_KEY = env("SECRET_KEY", default="foo") # type: ignore
 
-DEBUG = env("DEBUG", default="1") == "1"
+DEBUG = env("DEBUG", default="1") == "1" # type: ignore
 
 ALLOWED_HOSTS = ["*"]
 
@@ -63,8 +63,8 @@ WSGI_APPLICATION = "loftmebel.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"),
-        "NAME": env("DB_NAME", default=str(BASE_DIR / "db.sqlite3")),
+        "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"), # type: ignore
+        "NAME": env("DB_NAME", default=str(BASE_DIR / "db.sqlite3")), # type: ignore
         "HOST": env("DB_HOST"),
         "PORT": 5432,
         "USER": env("DB_USER"),
@@ -73,9 +73,6 @@ DATABASES = {
 }
 
 AUTH_PASSWORD_VALIDATORS = [
-    {
-        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
-    },
     {
         "NAME": "django.contrib.auth.password_validation.MinimumLengthValidator",
     },
@@ -116,7 +113,9 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"]
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework.authentication.SessionAuthentication"
+    ]
 }
 
 DEFAULT_FROM_EMAIL = "softoptions.mobile@gmail.com"

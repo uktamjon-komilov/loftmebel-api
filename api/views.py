@@ -4,7 +4,6 @@ from rest_framework.generics import ListAPIView
 from rest_framework.response import Response
 from rest_framework.viewsets import ModelViewSet, ViewSet, GenericViewSet, mixins
 from rest_framework import status
-from rest_framework.viewsets import mixins, GenericViewSet
 from django.db.models import Avg, Q
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.core.mail import send_mail
@@ -13,21 +12,53 @@ from rest_framework.views import APIView
 from datetime import datetime, timedelta
 import stripe
 
-from api.models import *
-from api.pagination import StandardResultsSetPagination
-from api.serializers import *
-from api.filters import *
-from api.services import check_black_list, create_wrong_try
-from api.utils import get_client_ip
+
+from .models import (
+    Feedback,
+    Category,
+    Banner,
+    Size,
+    Color,
+    Product,
+    User,
+    Discount,
+    OTP
+)
+
+from .pagination import StandardResultsSetPagination
+from .serializers import (
+    CategorySerializer,
+    BannerSerializer,
+    SizeSerializer,
+    ColorSerializer,
+    ProductSerializer,
+    ProductDetailSerializer,
+    EmailCheckSerializer,
+    EmailOTPCheckSerializer,
+    UserCreateSerializer,
+    UserLoginSerializer,
+    UserLoginResponseSerializer,
+    StripeGetLinkPostSerializer,
+    FeedbackSerializer,
+    UserSerializer
+)
+from .filters import (
+    ProductFilters,
+    SizeFilter,
+    ColorsFilter
+)
+from .services import check_black_list, create_wrong_try
 
 
-stripe.api_key = "sk_test_51L7h4wJOQHe4ItwoFY51RwjQ0fDBBZNIxOr1KCbbMDpsp0Cf4QQVUMHtZ3yaJuX1p4ak5cwaWGDrdhLzkyLKdRTj00bfmEiIYJ"
+stripe.api_key = """
+sk_test_51L7h4wJOQHe4ItwoFY51RwjQ0fDBBZNIxOr1KCbbMDpsp0Cf4QQVUMHtZ3yaJuX1p4ak5cwaWGDrdhLzkyLKdRTj00bfmEiIYJ
+""".strip()
 
 
 class CategoryViewSet(ViewSet):
     queryset = Category.objects.filter(parent__isnull=True)
     serializer_class = CategorySerializer
-    pagination_class = StandardResultsSetPagination
+    pagination_class = None
 
     def get_queryset(self):
         return self.queryset.all()
@@ -41,9 +72,9 @@ class CategoryViewSet(ViewSet):
     @action(detail=True, methods=["get"], url_path="products")
     def products(self, request, pk=None):
         try:
-            id = int(pk)
+            id = int(str(pk))
             category = Category.objects.filter(id=id)
-        except:
+        except Exception:
             category = Category.objects.filter(slug=pk)
         if category.exists():
             category = category.first()
@@ -54,20 +85,19 @@ class CategoryViewSet(ViewSet):
             page = paginator.paginate_queryset(products, request)
             if page is not None:
                 serializer = ProductDetailSerializer(page, many=True)
-                return self.get_paginated_response(serializer.data)
+                return paginator.get_paginated_response(serializer.data)
 
             serializer = ProductDetailSerializer(products, many=True)
             return Response(serializer.data, status.HTTP_200_OK)
 
         return Response(status=status.HTTP_404_NOT_FOUND)
-    
 
     @action(detail=True, methods=["get"], url_path="prices")
     def prices(self, request, pk=None):
         try:
-            id = int(pk)
+            id = int(str(pk))
             category = Category.objects.filter(id=id)
-        except:
+        except Exception:
             category = Category.objects.filter(slug=pk)
         if category.exists():
             category = category.first()
@@ -87,7 +117,7 @@ class CategoryViewSet(ViewSet):
 
 
 class BannerListView(ListAPIView):
-    pagination_class = StandardResultsSetPagination
+    pagination_class = None
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
 
@@ -106,9 +136,9 @@ class ProductViewSet(ModelViewSet):
 
     def retrieve(self, request, pk=None):
         try:
-            pk = int(pk)
+            pk = int(str(pk))
             product = Product.objects.filter(id=pk)
-        except:
+        except Exception:
             product = Product.objects.filter(slug=pk)
 
         if product.exists():
@@ -122,7 +152,7 @@ class ProductViewSet(ModelViewSet):
     def top_products(self, request):
         products = self.get_queryset()[:20]
 
-        page = self.paginate_queryset(products, request)
+        page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -139,11 +169,11 @@ class ProductViewSet(ModelViewSet):
 
         product_ids = []
         for discount in discounts:
-            product_ids.append(discount.product.id)
+            product_ids.append(discount.product.id) # type: ignore
         
         products = self.get_queryset().filter(id__in=product_ids)
 
-        page = self.paginate_queryset(products, request)
+        page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -156,11 +186,11 @@ class ProductViewSet(ModelViewSet):
     def recommended(self, request, pk=None):
         try:
             product = Product.objects.get(id=pk)
-        except:
+        except Exception:
             return Response(status=status.HTTP_404_NOT_FOUND)
         products = Product.objects.filter(category=product.category).exclude(id=pk)[:4]
 
-        page = self.paginate_queryset(products, request)
+        page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -173,7 +203,7 @@ class ProductViewSet(ModelViewSet):
     def latest(self, request):
         products = Product.objects.all().order_by("-created_at")[:4]
         
-        page = self.paginate_queryset(products, request)
+        page = self.paginate_queryset(products)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -213,7 +243,7 @@ class EmailCheckViewSet(
     permission_classes = []
 
     def create(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         if not serializer.is_valid():
             return Response({
                 "status": False,
@@ -259,35 +289,32 @@ class EmailOTPCheckViewSet(
     permission_classes = []
 
     def create(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
             return Response({
                 "status": False,
                 "detail": "BAD_REQUEST"
             })
-        
-        data = serializer.validated_data
 
-        otps = OTP.objects.filter(**data)
+        otps = OTP.objects.filter(**serializer.validated_data)
         if not otps.exists():
             return Response({
                 "status": False,
                 "detail": "WRONG_CODE"
             })
 
-        otps = otps.filter(
+        otp = otps.filter(
             is_activated=False,
             created_at__gte=(datetime.now() - timedelta(minutes=5))
-        )
+        ).first()
 
-        if not otps.exists():
+        if otp is None:
             return Response({
                 "status": False,
                 "detail": "EXPIRED"
             })
-    
-        otp = otps.first()
+
         otp.is_activated = True
         otp.save()
 
@@ -306,9 +333,12 @@ class UserCreateViewSet(
     authentication_classes = []
     permission_classes = []
 
-    @swagger_auto_schema(request_body=UserCreateSerializer, responses={201: UserSerializer})
+    @swagger_auto_schema(
+        request_body=UserCreateSerializer,
+        responses={201: UserSerializer}
+    )
     def create(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+        serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
             return Response({
@@ -316,28 +346,28 @@ class UserCreateViewSet(
                 "detail": f"BAD_REQUEST ({serializer.errors})"
             })
         
-        data = serializer.validated_data
+        data = {**serializer.validated_data}
 
         token = data.pop("token", "")
-        otps = OTP.objects.filter(
+        otp = OTP.objects.filter(
             token=token,
             is_activated=True,
             created_at__gte=(datetime.now() - timedelta(minutes=5))
-        )
-        if not otps.exists():
+        ).first()
+
+        if otp is None:
             return Response({
                 "status": False,
                 "detail": "TIMEOUT"
             })
-        
-        otp = otps.first()
+
         user = User(email=otp.email, **data)
         try:
             password = data.pop("password", "")
             user.save()
             user.set_password(password)
             user.save()
-        except Exception as e:
+        except Exception:
             return Response({
                 "status": False,
                 "detail": "DATABASE_ERROR"
@@ -375,25 +405,26 @@ class UserLoginViewSet(
                 "detail": "BAD_REQUEST"
             })
         
-        data = serializer.validated_data
-
-        username = data["username"].strip()
-        password = data["password"].strip()
-
-        users = User.objects.filter(
-            Q(email=username) |
-            Q(phone__icontains=username)
+        data: dict = (
+            serializer.validated_data if isinstance(serializer.validated_data, dict)
+            else {}
         )
 
-        if not users.exists():
+        username = data.get("username", "").strip()
+        password = data.get("password", "").strip()
+
+        user = User.objects.filter(
+            Q(email=username) |
+            Q(phone__icontains=username)
+        ).first()
+
+        if user is None:
             return Response({
                 "status": False,
                 "detail": "USER_NOT_EXISTS"
             })
-        
-        user = users.first()
 
-        if not user.check_password(password):
+        if user.check_password(password) is False:
             create_wrong_try(request, data)
             return Response({
                 "status": False,
@@ -418,7 +449,10 @@ class StripeAPIView(APIView):
         serializer = self.serialzer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
-        data = serializer.validated_data
+        data: dict = (
+            serializer.validated_data if isinstance(serializer.validated_data, dict)
+            else {}
+        )
 
         session = stripe.checkout.Session.create(
             line_items=[

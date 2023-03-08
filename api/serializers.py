@@ -1,13 +1,24 @@
-from rest_framework import serializers
 from django.utils import timezone
-from api.models import *
+from rest_framework import serializers
+
+from .models import (
+    Feedback,
+    Category,
+    Banner,
+    Size,
+    Color,
+    Photo,
+    Characteristic,
+    Product,
+    User,
+    Order
+)
 
 
 class CategorySimpleSerializer(serializers.ModelSerializer):    
     class Meta:
         model = Category
         fields = ["id", "title", "icon", "slug"]
-
 
 
 class CategorySerializer(serializers.ModelSerializer):
@@ -59,13 +70,19 @@ class ProductSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product
-        fields = ["id", "title", "slug", "photo", "category", "discount", "price", "discounted_price", "size", "color", "photos", "characteristics"]
+        fields = ["id", "title", "slug", "photo", "category", "discount",
+                  "price", "discounted_price", "size", "color", "photos",
+                  "characteristics"]
         read_only_fields = ["size", "color"]
     
     def get_discount_obj(self, obj):
         now = timezone.now()
         today = "{}-{}-{}".format(now.year, now.month, now.day)
-        discount = obj.discounts.filter(product=obj, expires_in__gt=today, is_active=True)
+        discount = obj.discounts.filter(
+            product=obj,
+            expires_in__gt=today,
+            is_active=True
+        )
         if discount.exists():
             discount = discount.first()
             return discount
@@ -88,7 +105,9 @@ class ProductSerializer(serializers.ModelSerializer):
 class ProductDetailSerializer(ProductSerializer):
     class Meta:
         model = Product
-        fields = ["id", "title", "slug", "photo", "category", "description", "discount", "price", "discounted_price", "size", "color", "photos", "characteristics"]
+        fields = ["id", "title", "slug", "photo", "category",
+                  "description", "discount", "price", "discounted_price",
+                  "size", "color", "photos", "characteristics"]
 
 
 class EmailCheckSerializer(serializers.Serializer):
@@ -106,14 +125,8 @@ class UserCreateSerializer(serializers.Serializer):
     phone = serializers.CharField(max_length=20)
     fullname = serializers.CharField(max_length=255)
     photo = serializers.FileField(allow_empty_file=True, use_url=True, required=False)
-    gender = models.CharField(max_length=15)
-    password = models.CharField(max_length=20)
-
-
-class UserSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = User
-        fields = ["id", "email", "phone", "photo", "fullname", "gender"]
+    gender = serializers.CharField(max_length=15)
+    password = serializers.CharField(max_length=20)
 
 
 class UserLoginSerializer(serializers.Serializer):
@@ -122,12 +135,14 @@ class UserLoginSerializer(serializers.Serializer):
 
 
 class UserLoginResponseSerializer(serializers.Serializer):
-    access = models.CharField()
-    refresh = models.CharField()
+    access = serializers.CharField()
+    refresh = serializers.CharField()
 
 
 class StripeGetLinkPostSerializer(serializers.Serializer):
-    order = serializers.PrimaryKeyRelatedField(queryset=Order.objects.all())
+    order = serializers.PrimaryKeyRelatedField(
+        queryset=Order.objects.all()
+    ) # type: ignore 
     success_url = serializers.CharField()
     cancel_url = serializers.CharField()
 

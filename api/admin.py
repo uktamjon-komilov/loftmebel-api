@@ -2,7 +2,22 @@ from django.contrib import admin
 from django import forms
 from mptt.admin import MPTTModelAdmin
 
-from api.models import *
+
+from .models import (
+    Category,
+    Banner,
+    Size,
+    Color,
+    Photo,
+    Characteristic,
+    Product,
+    User,
+    Review,
+    Wishlist,
+    Discount,
+    OTP
+)
+
 
 class CategoryAdmin(MPTTModelAdmin):
     mptt_level_indent = 50

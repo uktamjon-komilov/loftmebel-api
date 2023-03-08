@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from api.models import WrongRty
-from api.utils import get_client_ip
+
+from .models import WrongRty
+from .utils import get_client_ip
 
 
 def create_wrong_try(request, data):
@@ -18,10 +19,10 @@ def create_wrong_try(request, data):
 
 def check_black_list(request):
     wrong_tries = WrongRty.objects.filter(
-        user_agent=request.user_agent,
+       user_agent=request.user_agent,
         ip=get_client_ip(request),
         created_at__gte=(datetime.now() - timedelta(minutes=5))
-    )
+    )  # type: ignore 
 
     if wrong_tries.count() >= 3:
         return True

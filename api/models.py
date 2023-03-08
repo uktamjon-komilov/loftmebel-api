@@ -1,14 +1,14 @@
+from random import randint
 from datetime import datetime
 from hashlib import md5
+
 from django.db import models
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
-from mptt.models import MPTTModel, TreeForeignKey
 from django.template.defaultfilters import slugify
-from random import randint
+from mptt.models import MPTTModel, TreeForeignKey
 
-from api.utils import generate_random_number
-
+from .utils import generate_random_number
 from .managers import UserManager
 
 
@@ -73,7 +73,7 @@ class OTP(models.Model):
         super(OTP, self).save(*args, **kwargs)
         if not self.token:
             now = datetime.now()
-            plain = "{}{}".format(self.id, now.year)
+            plain = "{}{}".format(self.id, now.year) # type: ignore
             self.token = md5(plain.encode("utf-8")).hexdigest()
         if not self.code:
             self.code = generate_random_number()
@@ -84,7 +84,8 @@ class OTP(models.Model):
 
 
 class Category(MPTTModel):
-    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True, blank=True, related_name="children")
+    parent = TreeForeignKey("self", on_delete=models.CASCADE, null=True,
+                            blank=True, related_name="children")
     icon = models.FileField(upload_to="icons/", null=True, blank=True)
     title = models.CharField(max_length=255)
     slug = models.CharField(max_length=255)
@@ -124,7 +125,8 @@ class Size(models.Model):
 class Product(models.Model):
     title = models.CharField(max_length=255)
     photo = models.FileField(upload_to="images/")
-    category = models.ForeignKey(Category, on_delete=models.SET_NULL, null=True, blank=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL,
+                                 null=True, blank=True)
     price = models.FloatField()
     color = models.ManyToManyField(Color, related_name="products")
     size = models.ManyToManyField(Size, related_name="products")
@@ -146,13 +148,15 @@ class Product(models.Model):
 
 
 class Discount(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="discounts")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,
+                                related_name="discounts")
     discount = models.FloatField(default=0.0)
     expires_in = models.DateField()
     is_active = models.BooleanField(default=True)
 
     def save(self, *args, **kwargs):
-        discount = Discount.objects.filter(product=self.product, is_active=True, expires_in__gt=self.expires_in)
+        discount = Discount.objects.filter(product=self.product, is_active=True,
+                                           expires_in__gt=self.expires_in)
         if discount.exists():
             for dis in discount:
                 dis.is_active = False
@@ -162,7 +166,8 @@ class Discount(models.Model):
 
 
 class Photo(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="photos")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,
+                                related_name="photos")
     photo = models.FileField(upload_to="images/")
 
     def __str__(self):
@@ -170,7 +175,8 @@ class Photo(models.Model):
 
 
 class Characteristic(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="characteristics")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,
+                                related_name="characteristics")
     key = models.CharField(max_length=255)
     value = models.CharField(max_length=255)
 
@@ -179,13 +185,18 @@ class Characteristic(models.Model):
 
 
 class Review(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="reviews")
+    product = models.ForeignKey(Product, on_delete=models.CASCADE,
+                                related_name="reviews")
     user = models.ForeignKey(User, on_delete=models.SET_NULL, null=True)
     rating = models.FloatField()
     text = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return "{}'s review: {}".format(self.user.fullname or self.user.phone, self.rating)
+        if self.user is None:
+            return "unkwon user's review"
+
+        return "{}'s review: {}".format(self.user.fullname or self.user.phone,
+                                        self.rating)
 
 
 class Wishlist(models.Model):
@@ -194,7 +205,14 @@ class Wishlist(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
 
     def __str__(self):
-        return "{} liked {}".format(self.ip or self.user.fullname or self.user.phone, self.product.title)
+        if self.user is None:
+            return "unkwon user's wishlist"
+
+        if self.product is None:
+            return "wishlist without a product"
+
+        return "{} liked {}".format(self.ip or self.user.fullname or self.user.phone,
+                                    self.product.title)
 
 
 class Order(models.Model):
