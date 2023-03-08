@@ -51,7 +51,7 @@ class CategoryViewSet(ViewSet):
             products = ProductFilters.apply_filters(products, self.request)
 
             paginator = StandardResultsSetPagination()
-            page = paginator.paginate_queryset(request, products)
+            page = paginator.paginate_queryset(products, request)
             if page is not None:
                 serializer = ProductDetailSerializer(page, many=True)
                 return self.get_paginated_response(serializer.data)
@@ -122,7 +122,7 @@ class ProductViewSet(ModelViewSet):
     def top_products(self, request):
         products = self.get_queryset()[:20]
 
-        page = self.paginate_queryset(request, products)
+        page = self.paginate_queryset(products, request)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -143,7 +143,7 @@ class ProductViewSet(ModelViewSet):
         
         products = self.get_queryset().filter(id__in=product_ids)
 
-        page = self.paginate_queryset(request, products)
+        page = self.paginate_queryset(products, request)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -160,7 +160,7 @@ class ProductViewSet(ModelViewSet):
             return Response(status=status.HTTP_404_NOT_FOUND)
         products = Product.objects.filter(category=product.category).exclude(id=pk)[:4]
 
-        page = self.paginate_queryset(request, products)
+        page = self.paginate_queryset(products, request)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
@@ -173,7 +173,7 @@ class ProductViewSet(ModelViewSet):
     def latest(self, request):
         products = Product.objects.all().order_by("-created_at")[:4]
         
-        page = self.paginate_queryset(request, products)
+        page = self.paginate_queryset(products, request)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
