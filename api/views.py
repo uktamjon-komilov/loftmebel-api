@@ -87,7 +87,7 @@ class CategoryViewSet(ViewSet):
 
 
 class BannerListView(ListAPIView):
-    pagination_class = None
+    pagination_class = StandardResultsSetPagination
     queryset = Banner.objects.all()
     serializer_class = BannerSerializer
 
