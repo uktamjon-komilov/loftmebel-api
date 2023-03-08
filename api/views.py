@@ -27,7 +27,7 @@ stripe.api_key = "sk_test_51L7h4wJOQHe4ItwoFY51RwjQ0fDBBZNIxOr1KCbbMDpsp0Cf4QQVU
 class CategoryViewSet(ViewSet):
     queryset = Category.objects.filter(parent__isnull=True)
     serializer_class = CategorySerializer
-    pagination_class = None
+    pagination_class = StandardResultsSetPagination
 
     def get_queryset(self):
         return self.queryset.all()
