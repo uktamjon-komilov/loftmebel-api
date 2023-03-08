@@ -65,10 +65,10 @@ DATABASES = {
     "default": {
         "ENGINE": env("DB_ENGINE", default="django.db.backends.sqlite3"), # type: ignore
         "NAME": env("DB_NAME", default=str(BASE_DIR / "db.sqlite3")), # type: ignore
-        "HOST": env("DB_HOST"),
+        "HOST": env("DB_HOST", default="127.0.0.1"), # type: ignore
         "PORT": 5432,
-        "USER": env("DB_USER"),
-        "PASSWORD": env("DB_PASS"),
+        "USER": env("DB_USER", default="root"), # type: ignore
+        "PASSWORD": env("DB_PASS", default="foo"), # type: ignore
     }
 }
 

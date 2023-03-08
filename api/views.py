@@ -261,23 +261,36 @@ class EmailCheckViewSet(
         
         otp = OTP(email=email)
         otp.save()
-        self.send_otp_code(otp)
+        result = self.send_otp_code(otp)
+
+        debug_details = {
+            "debug_details": {
+                "message": "We are returning the code itself here in the response \
+                            because the email sending limit exceeded",
+                "code": otp.code
+            }
+        }
         
         return Response({
             "status": True,
             "data": {
-                "token": otp.token
+                "token": otp.token,
+                **(debug_details if result is False else {})
             }
         })
     
 
     def send_otp_code(self, otp):
-        send_mail(
-            "OTP code",
-            otp.code,
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=[otp.email]
-        )
+        try:
+            send_mail(
+                "OTP code",
+                otp.code,
+                from_email=settings.EMAIL_HOST_USER,
+                recipient_list=[otp.email],
+            )
+        except Exception:
+            return False
+        return True
 
 
 class EmailOTPCheckViewSet(
